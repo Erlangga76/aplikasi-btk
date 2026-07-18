@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>App BTK - PT. Dinamis MediaJateng</title>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    
+    <!-- Panggil file CSS eksternal -->
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+    <div class="container">
+        <div class="header" style="display: flex; align-items: center; justify-content: center; gap: 20px; text-align: left; padding: 20px 0;">
+            <img src="https://lh3.googleusercontent.com/d/17OX8Y_lr3lMI6np3jXhlb0lr5myvLu5Q" alt="Logo DMJ" style="height: 65px; width: auto; border-radius: 8px;">
+            <div>
+                <h2 style="margin: 0; font-size: 24px; color: #ffffff;">PT. DINAMIS MEDIAJATENG</h2>
+                <p style="margin: 5px 0 0 0; color: #cbd5e1;">Sistem Input BTK Kolektif & Slip Gaji Multi-Pekerjaan Otomatis</p>
+            </div>
+        </div>
+
+        <!-- SECTION INPUT & KAMPAS LIVE FORMULA -->
+        <div class="card">
+            <div class="card-title">Form Input Pekerjaan Kolektif</div>
+            <div class="grid-2">
+                <div>
+                    <div class="form-group">
+                        <label>Tanggal Pelaksanaan Kerja</label>
+                        <input type="date" id="PilihTanggal">
+                    </div>
+                    <div class="form-group">
+                        <label>Pilih Lokasi Reklame</label>
+                        <!-- ID disesuaikan menjadi "PilihLokasi" agar sinkron dengan script.js -->
+                        <select id="PilihLokasi">
+                            <option value="">-- Pilih Lokasi --</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Jenis Pekerjaan</label>
+                        <select id="PilihJenis">
+                            <option value="Pasang Putihan">Pasang Putihan</option>
+                            <option value="Pasang">Pasang</option>
+                            <option value="Bongkar">Bongkar</option>
+                            <option value="Bongkar Pasang">Bongkar Pasang</option>
+                            <option value="Service Kecil">Service Kecil</option>
+                            <option value="Service Sedang">Service Sedang</option>
+                            <option value="Service Besar">Service Besar</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Input Lembur (Jam / Orang)</label>
+                        <input type="number" id="InputLembur" min="0" value="0">
+                    </div>
+                    <div class="form-group">
+                        <label>Centang PIC / Pekerja yang Terlibat</label>
+                        <div class="checkbox-group">
+                            <label class="checkbox-item"><input type="checkbox" name="pekerja_check" value="Ambar" checked> Ambar</label>
+                            <label class="checkbox-item"><input type="checkbox" name="pekerja_check" value="Agus" checked> Agus</label>
+                            <label class="checkbox-item"><input type="checkbox" name="pekerja_check" value="Komari" checked> Komari</label>
+                        </div>
+                    </div>
+                    <button type="button" class="btn btn-blue" style="width: 100%; margin-top: 10px;" onclick="tambahKeLogKerja()">+ Tambah ke Daftar Log Kerja</button>
+                </div>
+
+                <div class="live-formula-panel">
+                    <div class="panel-header">
+                        <span class="title">Kalkulasi Otomatis</span>
+                        <span class="sub">Live Formula</span>
+                    </div>
+                    <div class="formula-row">
+                        <span class="label">Tarif Proyek / Borongan:</span>
+                        <span class="val" id="live_borongan_total">Rp 0</span>
+                    </div>
+                    <div class="formula-row">
+                        <span class="label">Upah Borongan / Orang:</span>
+                        <span class="val" id="live_borongan_ecer">Rp 0</span>
+                    </div>
+                    <div class="formula-row">
+                        <span class="label">Gaji Pokok (1 hr):</span>
+                        <span class="val val-amber">Rp 75.000</span>
+                    </div>
+                    <div class="formula-row">
+                        <span class="label">Uang Makan (Est. Zona):</span>
+                        <span class="val" id="live_uang_makan">Rp 15.000</span>
+                    </div>
+                    <div class="formula-row">
+                        <span class="label">Uang Lembur / Orang:</span>
+                        <span class="val" id="live_lembur_ecer">Rp 0</span>
+                    </div>
+                    <div class="formula-total">
+                        <span>Total Terima / Orang:</span>
+                        <span id="live_total_terima">Rp 100.000</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TABEL LOG UTAMA -->
+        <div class="card">
+            <div class="card-title">Daftar Log Semua Inputan Kerja</div>
+            <div style="overflow-x: auto;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>No</th>
+                            <th>Tanggal</th>
+                            <th>Lokasi (Zona)</th>
+                            <th>Ukuran & Model</th>
+                            <th>Jenis Pekerjaan</th>
+                            <th>Lembur (Jam)</th>
+                            <th>Pekerja Terlibat</th>
+                            <th>Total Borongan</th>
+                            <th>Bagi per Orang</th>
+                            <th>Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="log-table-body">
+                        <tr><td colspan="10" style="text-align: center; color: #999;">Belum ada data pekerjaan dimasukkan.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div style="margin-top: 15px; display: flex; gap: 10px;">
+                <button class="btn" style="background: #7f8c8d;" onclick="resetSemua()">🔄 Kosongkan Log</button>
+            </div>
+        </div>
+
+        <!-- Tombol Export Excel Akhir Pekan -->
+        <button onclick="exportBTKKeExcel()" style="background-color: #107c41; color: white; padding: 10px 18px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; margin-bottom: 15px;">
+            <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                <path d="M5.884 6.68a.5.5 0 1 0-.768.64L7.349 10l-2.233 2.68a.5.5 0 0 0 .768.64L8 10.781l2.116 2.54a.5.5 0 0 0 .768-.641L8.651 10l2.233-2.68a.5.5 0 0 0-.768-.64L8 9.219l-2.116-2.54z"/>
+                <path d="M14 14V2a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2zM5 1h6v3H5V1zm0 4h6v1H5V5zm0 2h6v1H5V7zm0 2h6v1H5V9zm0 2h6v1H5v-1zm0 2h6v1H5v-1z"/>
+            </svg>
+            Export Pembukuan BTK (Excel)
+        </button>
+
+        <!-- AREA PREVIEW SLIP GAJI MULTI-JOB GRID 3 KOLOM -->
+        <div class="card print-slip-card">
+            <div class="card-title">Generator Cetak Slip Gaji Pegawai</div>
+            
+            <div class="form-group" style="max-width: 300px;">
+                <label>Filter Preview (Layar Saja):</label>
+                <select id="PilihPekerjaSlip" onchange="generateSlipGaji()">
+                    <option value="SEMUA_PEKERJA">-- Tampilkan Semua Struk --</option>
+                    <option value="Ambar">Ambar</option>
+                    <option value="Agus">Agus</option>
+                    <option value="Komari">Komari</option>
+                </select>
+            </div>
+
+            <!-- Wadah Grid Utama Penampung Slip -->
+            <div class="slip-container-grid" id="containerSlipGaji">
+                <!-- Slip gaji akan di-generate otomatis ke sini oleh JavaScript -->
+            </div>
+            
+            <div style="text-align: center; margin-top: 25px;">
+                <button class="btn btn-blue" onclick="window.print()">🖨️ Cetak / Simpan PDF Slip (3 Kolom)</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/script.js"></script>
+</body>
+</html>
