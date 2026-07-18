@@ -1,7 +1,7 @@
 {
   "name": "App BTK DMJ",
   "short_name": "BTK DMJ",
-  "start_url": "index.html",
+  "start_url": "aplikasi-btk/index.html",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#2c3e50"
