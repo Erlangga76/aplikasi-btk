@@ -551,7 +551,7 @@ function generateSlipGaji() {
                     </div>
                     <div>
                         <div>Kep. Produksi</div>
-                        <div class="signature-space">Satya - Admin BTK</div>
+                        <div class="signature-space">Satya</div>
                     </div>
                 </div>
             </div>
