@@ -4,16 +4,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>App BTK - PT. Dinamis MediaJateng</title>
-    <!-- PWA Setup -->
-    <link rel="manifest" href="manifest.json">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black">
-    <meta name="apple-mobile-web-app-title" content="BTK DMJ">
-    <link rel="apple-touch-icon" href="https://lh3.googleusercontent.com/d/17OX8Y_lr3lMI6np3jXhlb0lr5myvLu5Q">
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     
     <!-- Panggil file CSS eksternal -->
     <link rel="stylesheet" href="css/style.css">
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="manifest.json">
+    <!-- Agar terlihat bagus di iOS (iPhone) -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="apple-mobile-web-app-title" content="BTK DMJ">
+    <link rel="apple-touch-icon" href="icon-192.png">
 </head>
 <body>
 
@@ -43,8 +44,17 @@
                         </select>
                     </div>
                     <div class="form-group">
+                        <label>Koreksi Model Penerangan (Opsional / Kondisional)</label>
+                        <select id="PilihModelOverride">
+                            <option value="">-- Abaikan Jika tidak Ada Perubahan --</option>
+                            <option value="Front Light">Front Light</option>
+                            <option value="Back Light">Back Light</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
                         <label>Jenis Pekerjaan</label>
                         <select id="PilihJenis">
+                            <option value="">-- Pilih Jenis Pekerjaan --</option>
                             <option value="Pasang Putihan">Pasang Putihan</option>
                             <option value="Pasang">Pasang</option>
                             <option value="Bongkar">Bongkar</option>
