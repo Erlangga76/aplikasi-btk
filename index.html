@@ -23,8 +23,28 @@
             <img src="https://lh3.googleusercontent.com/d/17OX8Y_lr3lMI6np3jXhlb0lr5myvLu5Q" alt="Logo DMJ" style="height: 65px; width: auto; border-radius: 8px;">
             <div>
                 <h2 style="margin: 0; font-size: 24px; color: #ffffff;">PT. DINAMIS MEDIAJATENG</h2>
-                <p style="margin: 5px 0 0 0; color: #cbd5e1;">Sistem Input BTK Kolektif & Slip Gaji Multi-Pekerjaan Otomatis</p>
+                <p style="margin: 5px 0 0 0; color: #cbd5e1;">System Input BTK Kolektif & Slip Gaji Multi-Pekerjaan Otomatis</p>
             </div>
+        </div>
+
+        <!-- Modal / Halaman Login -->
+        <div id="login-overlay" class="login-overlay">
+            <div class="login-card">
+                <h2>Login App BTK</h2>
+                <p>PT. Dinamis MediaJateng</p>
+                <div class="form-group">
+                    <label for="whatsapp-input">Nomor WhatsApp</label>
+                    <input type="tel" id="whatsapp-input" placeholder="Contoh: 081234567890" />
+                </div>
+                <button id="btn-login" class="btn-primary" type="button" onclick="handleLogin()">Masuk Aplikasi</button>
+                <p id="login-message" class="login-message"></p>
+            </div>
+        </div>
+
+        <!-- Elemen Sambutan Operator -->
+        <div id="welcome-banner" class="welcome-banner" style="display: none;">
+            <h3>Selamat Datang, <span id="operator-name-display"></span>!</h3>
+            <p>System BTK PT. Dinamis MediaJateng siap digunakan.</p>
         </div>
 
         <!-- SECTION INPUT & KAMPAS LIVE FORMULA -->
@@ -38,7 +58,6 @@
                     </div>
                     <div class="form-group">
                         <label>Pilih Lokasi Reklame</label>
-                        <!-- ID disesuaikan menjadi "PilihLokasi" agar sinkron dengan script.js -->
                         <select id="PilihLokasi">
                             <option value="">-- Pilih Lokasi --</option>
                         </select>
@@ -136,19 +155,23 @@
                     </tbody>
                 </table>
             </div>
-            <div style="margin-top: 15px; display: flex; gap: 10px;">
+            
+            <div style="margin-top: 15px; display: flex; gap: 10px; align-items: center; justify-content: space-between; flex-wrap: wrap;">
                 <button class="btn" style="background: #7f8c8d;" onclick="resetSemua()">🔄 Kosongkan Log</button>
+                
+                <!-- TOMBOL REKAP AKHIR PEKAN (Menggantikan Tombol Export Excel yang Dobel) -->
+                <button onclick="tampilkanRekapJumatUI()" style="background-color: #107c41; color: white; padding: 10px 18px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; display: inline-flex; align-items: center; gap: 8px;">
+                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M5.884 6.68a.5.5 0 1 0-.768.64L7.349 10l-2.233 2.68a.5.5 0 0 0 .768.64L8 10.781l2.116 2.54a.5.5 0 0 0 .768-.641L8.651 10l2.233-2.68a.5.5 0 0 0-.768-.64L8 9.219l-2.116-2.54z"/>
+                        <path d="M14 14V2a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2zM5 1h6v3H5V1zm0 4h6v1H5V5zm0 2h6v1H5V7zm0 2h6v1H5V9zm0 2h6v1H5v-1zm0 2h6v1H5v-1z"/>
+                    </svg>
+                    Rekap Akhir Pekan
+                </button>
             </div>
-        </div>
 
-        <!-- Tombol Export Excel Akhir Pekan -->
-        <button onclick="exportBTKKeExcel()" style="background-color: #107c41; color: white; padding: 10px 18px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; margin-bottom: 15px;">
-            <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                <path d="M5.884 6.68a.5.5 0 1 0-.768.64L7.349 10l-2.233 2.68a.5.5 0 0 0 .768.64L8 10.781l2.116 2.54a.5.5 0 0 0 .768-.641L8.651 10l2.233-2.68a.5.5 0 0 0-.768-.64L8 9.219l-2.116-2.54z"/>
-                <path d="M14 14V2a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2zM5 1h6v3H5V1zm0 4h6v1H5V5zm0 2h6v1H5V7zm0 2h6v1H5V9zm0 2h6v1H5v-1zm0 2h6v1H5v-1z"/>
-            </svg>
-            Export Pembukuan BTK (Excel)
-        </button>
+            <!-- Wadah Tunggal untuk Memunculkan Hasil Rekap di Layar -->
+            <div id="containerRekapJumat" style="margin-top: 15px;"></div>
+        </div>
 
         <!-- AREA PREVIEW SLIP GAJI MULTI-JOB GRID 3 KOLOM -->
         <div class="card print-slip-card">
@@ -175,6 +198,7 @@
         </div>
     </div>
 
-    <script src="js/script.js"></script>
+    <!-- Pemanggilan script utama -->
+    <script src="js/script.js?v=2.2"></script>
 </body>
 </html>
