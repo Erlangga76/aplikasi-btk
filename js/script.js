@@ -303,7 +303,7 @@ function hitungHargaLive() {
 // ==========================================
 // 3. LOGIKA FORM LOG & PENYIMPANAN DATA
 // ==========================================
-function tambahKeLogKerja() {
+async function tambahKeLogKerja() {
     const checkedBoxes = document.querySelectorAll('input[name="pekerja_check"]:checked');
     if (checkedBoxes.length === 0) {
         alert("Silakan pilih minimal 1 pekerja!");
@@ -314,30 +314,62 @@ function tambahKeLogKerja() {
     const dataKalkulasi = hitungHargaLive();
     if (!dataKalkulasi) return;
 
-    masterLogKerja.push({
+    const tanggalInput = inputTanggal.value;
+    const lokasiInput = selectLokasi.value;
+    const jenisKerjaInput = dataKalkulasi.jenisKerja;
+
+    // --- VALIDASI PENDOBLAN PEKERJAAN ---
+    const isDuplicate = masterLogKerja.some(item => 
+        item.tanggal === tanggalInput && 
+        item.lokasi === lokasiInput && 
+        item.jenisPekerjaan === jenisKerjaInput
+    );
+
+    if (isDuplicate) {
+        alert(`⚠️ Peringatan: Pekerjaan "${jenisKerjaInput}" di lokasi "${lokasiInput}" pada tanggal ${tanggalInput} sudah pernah diinput! Silakan periksa kembali.`);
+        return; // Hentikan proses jika kembar
+    }
+    // ------------------------------------
+
+    // Data objek baru untuk log kerja
+    const dataBaru = {
         id: Date.now(),
-        tanggal: inputTanggal.value,
-        lokasi: selectLokasi.value,
+        tanggal: tanggalInput,
+        lokasi: lokasiInput,
         ukuran: dataKalkulasi.ukuran,
         zona: dataKalkulasi.zona,
         model: dataKalkulasi.model,
-        jenisPekerjaan: dataKalkulasi.jenisKerja,
+        jenisPekerjaan: jenisKerjaInput,
         jamLembur: Number(dataKalkulasi.jamLembur) || 0,
         pekerja: listPekerja,
         hargaBoronganTotal: dataKalkulasi.hargaBoronganTotal,
         bagiPerOrang: dataKalkulasi.bagiPerOrang
-    });
+    };
 
-    // 2. URUTKAN OTOMATIS: Dari tanggal terkecil ke terbesar (Ascending)
+    // 1. Masukkan ke array master & urutkan berdasarkan tanggal (Ascending)
+    masterLogKerja.push(dataBaru);
     masterLogKerja.sort((a, b) => new Date(a.tanggal) - new Date(b.tanggal));
 
-    // Auto-save ke LocalStorage
+    // 2. Auto-save ke LocalStorage
     localStorage.setItem("simpananDataBTK", JSON.stringify(masterLogKerja));
 
+    // 3. Render ulang tampilan UI
     renderTabelLogKerja();
     generateSlipGaji();
     hitungHargaLive();
-    showToast(`Sukses! Pekerjaan di "${selectLokasi.value}" telah ditambahkan dan diurutkan.`);
+
+    // 4. KIRIM DATA KE GOOGLE SHEETS OTOMATIS (Termasuk Lokasi)
+    await kirimDataPekerjaan({
+        lokasi: dataBaru.lokasi,
+        ukuran: dataBaru.ukuran,
+        jenisLampu: dataBaru.model,
+        kategori: dataBaru.jenisPekerjaan,
+        zona: dataBaru.zona,
+        jumlah: dataBaru.pekerja.length,
+        totalUpah: dataBaru.hargaBoronganTotal,
+    });
+
+    showToast(`Sukses! Pekerjaan di "${selectLokasi.value}" telah ditambahkan.`);
 }
 
 function renderTabelLogKerja() {
@@ -577,4 +609,274 @@ function generateSlipGaji() {
     if(!adaDataDibuat) {
         containerSlip.innerHTML = `<div style="grid-column: 1/-1; text-align: center; color: #aaa; font-style: italic; padding: 20px;">Belum ada riwayat kerja di log untuk ditampilkan.</div>`;
     }
+}
+// URL Web App dari Google Apps Script untuk pengecekan whitelist
+const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzOV9FlbPPEvspe9DTxWc9QAZXfUwX3HqX5BmppyZlEZJrwy649ke6mLPDCeEp5Fiq-6g/exec";
+
+// 1. Jalankan saat halaman dimuat
+document.addEventListener("DOMContentLoaded", () => {
+    checkAuthStatus();
+});
+
+// 2. Fungsi Cek Status Login (Versi Lengkap)
+function checkAuthStatus() {
+    const savedUser = localStorage.getItem("btk_logged_user");
+    const loginOverlay = document.getElementById("login-overlay");
+    const welcomeBanner = document.getElementById("welcome-banner");
+    const nameDisplay = document.getElementById("operator-name-display");
+    
+    if (savedUser) {
+        if (loginOverlay) loginOverlay.style.display = "none";
+        
+        const userData = JSON.parse(savedUser);
+        if (welcomeBanner && nameDisplay) {
+            nameDisplay.textContent = userData.name;
+            welcomeBanner.style.display = "block";
+        }
+    } else {
+        if (loginOverlay) loginOverlay.style.display = "flex";
+        if (welcomeBanner) welcomeBanner.style.display = "none";
+    }
+}
+
+// 3. Fungsi Proses Login
+async function handleLogin() {
+    const inputField = document.getElementById("whatsapp-input");
+    const msgField = document.getElementById("login-message");
+    const btnLogin = document.getElementById("btn-login");
+    
+    const phoneNumber = inputField.value.trim();
+    
+    if (!phoneNumber) {
+        msgField.style.color = "#f87171";
+        msgField.textContent = "Masukkan nomor WhatsApp terlebih dahulu!";
+        return;
+    }
+    
+    btnLogin.disabled = true;
+    btnLogin.textContent = "Memeriksa...";
+    msgField.textContent = "";
+
+    try {
+        const url = `${WEB_APP_URL}?action=login&wa=${encodeURIComponent(phoneNumber)}`;
+        
+        const response = await fetch(url, {
+            method: "GET",
+            redirect: "follow"
+        });
+        
+        const textData = await response.text();
+        const result = JSON.parse(textData);
+        
+        if (result.success && result.allowed) {
+            localStorage.setItem("btk_logged_user", JSON.stringify({
+                phone: phoneNumber,
+                name: result.name || "Operator"
+            }));
+            
+            msgField.style.color = "#4ade80";
+            msgField.textContent = `Login berhasil! Selamat datang, ${result.name}`;
+            
+            setTimeout(() => {
+                document.getElementById("login-overlay").style.display = "none";
+                location.reload();
+            }, 1000);
+            
+        } else {
+            msgField.style.color = "#f87171";
+            msgField.textContent = "Nomor WhatsApp tidak terdaftar atau tidak aktif!";
+            btnLogin.disabled = false;
+            btnLogin.textContent = "Masuk Aplikasi";
+        }
+    } catch (error) {
+        console.error("Detail Error:", error);
+        msgField.style.color = "#f87171";
+        msgField.textContent = "Gagal memproses data login. Coba lagi.";
+        btnLogin.disabled = false;
+        btnLogin.textContent = "Masuk Aplikasi";
+    }
+}
+
+// 4. Fungsi Kirim Data Pekerjaan
+async function kirimDataPekerjaan(rincianPekerjaan) {
+    const savedUser = localStorage.getItem("btk_logged_user");
+    if (!savedUser) {
+        alert("Sesi login habis, silakan login ulang.");
+        return;
+    }
+    
+    const userData = JSON.parse(savedUser);
+    
+    // Format data yang akan dikirim ke doPost Google Apps Script
+    const payload = {
+        wa: userData.phone,
+        name: userData.name,
+        pekerjaan: {
+            lokasi: rincianPekerjaan.lokasi,
+            ukuran: rincianPekerjaan.ukuran,
+            jenisLampu: rincianPekerjaan.jenisLampu,
+            kategori: rincianPekerjaan.kategori,
+            zona: rincianPekerjaan.zona,
+            jumlah: rincianPekerjaan.jumlah,
+            totalUpah: rincianPekerjaan.totalUpah,
+        }
+    };
+
+    try {
+        const response = await fetch(WEB_APP_URL, {
+            method: "POST",
+            redirect: "follow",
+            headers: {
+                "Content-Type": "text/plain;charset=utf-8" // Menggunakan text/plain agar tidak terhalang preflight CORS di Google Apps Script
+            },
+            body: JSON.stringify(payload)
+        });
+
+        const result = await response.json();
+        if (result.success) {
+            alert("Data pekerjaan berhasil disimpan ke Google Sheets!");
+            // Lakukan pembersihan form atau muat ulang tabel log di sini
+        } else {
+            alert("Gagal menyimpan data: " + result.message);
+        }
+    } catch (error) {
+        console.error("Error saat mengirim data:", error);
+        alert("Terjadi kesalahan koneksi saat menyimpan data.");
+    }
+}
+// ==========================================
+// 5. FITUR LAPORAN AKHIR PEKAN (REKAP OTOMATIS & ANTI-PENDOBELAN)
+// ==========================================
+function generateLaporanAkhirPekan() {
+    if (!masterLogKerja || masterLogKerja.length === 0) {
+        console.log("Belum ada data untuk laporan akhir pekan.");
+        return [];
+    }
+
+    // LANGKAH 1: Validasi & Hapus Pendobelan (Deduplication)
+    // Menggunakan Map dengan kunci unik: Tanggal + Lokasi + Jenis Pekerjaan
+    const petaDataUnik = new Map();
+
+    masterLogKerja.forEach(item => {
+        // Buat kunci unik untuk setiap pekerjaan
+        const kunciUnik = `${item.tanggal}_${item.lokasi}_${item.jenisPekerjaan}`;
+
+        if (!petaDataUnik.has(kunciUnik)) {
+            // Jika belum ada, masukkan sebagai data bersih
+            petaDataUnik.set(kunciUnik, { ...item });
+        } else {
+            // Jika sudah ada (terdeteksi duplikat dari operator berbeda), 
+            // kita bisa menggabungkan daftar pekerja agar tidak ada yang terlewat
+            const dataEksisting = petaDataUnik.get(kunciUnik);
+            
+            // Gabungkan array pekerja dan pastikan namanya tidak duplikat (unik)
+            const gabunganPekerja = Array.from(new Set([...dataEksisting.pekerja, ...item.pekerja]));
+            dataEksisting.pekerja = gabunganPekerja;
+            
+            petaDataUnik.set(kunciUnik, dataEksisting);
+        }
+    });
+
+    // Ubah kembali dari Map menjadi Array yang bersih
+    const dataLaporanBersih = Array.from(petaDataUnik.values());
+
+    // LANGKAH 2: Urutkan berdasarkan tanggal (Ascending)
+    dataLaporanBersih.sort((a, b) => new Date(a.tanggal) - new Date(b.tanggal));
+
+    // LANGKAH 3: Rekapitulasi Total Keseluruhan
+    let totalKeseluruhanBorongan = 0;
+    dataLaporanBersih.forEach(log => {
+        totalKeseluruhanBorongan += log.hargaBoronganTotal;
+    });
+
+    console.log("Laporan Akhir Pekan Berhasil Disusun:", {
+        totalJobUnik: dataLaporanBersih.length,
+        totalNilaiBorongan: totalKeseluruhanBorongan,
+        rincian: dataLaporanBersih
+    });
+
+    // Kembalikan data yang sudah bersih dan tergabung untuk ditampilkan di UI Laporan Akhir Pekan
+    return {
+        dataBersih: dataLaporanBersih,
+        totalBorongan: totalKeseluruhanBorongan
+    };
+}
+function tampilkanRekapJumatUI() {
+    const hasilRekap = generateRekapAkhirPekanJumat();
+    if (!hasilRekap) return;
+
+    const container = document.getElementById('containerRekapJumat');
+    if (!container) return;
+
+    // Buat tampilan tabel ringkasan rekap bersih di layar
+    let htmlRincian = hasilRekap.listData.map((item, idx) => `
+        <tr>
+            <td>${idx + 1}</td>
+            <td>${item.tanggal}</td>
+            <td><b>${item.lokasi}</b></td>
+            <td>${item.jenisPekerjaan}</td>
+            <td>${item.pekerja.join(', ')}</td>
+            <td style="text-align: right;">Rp ${item.hargaBoronganTotal.toLocaleString('id-ID')}</td>
+        </tr>
+    `).join('');
+
+    container.innerHTML = `
+        <div style="background: #f8fafc; border: 1px solid #cbd5e1; padding: 15px; border-radius: 8px;">
+            <h4 style="margin-top: 0; color: #1e293b;">Hasil Rekap Akhir Pekan</h4>
+            <p><b>Total Pekerjaan Unik:</b> ${hasilRekap.listData.length} Job</p>
+            <p><b>Total Nilai Borongan Bersih:</b> Rp ${hasilRekap.totalNilai.toLocaleString('id-ID')}</p>
+            <div style="max-height: 250px; overflow-y: auto;">
+                <table class="slip-table" style="width: 100%; font-size: 12px;">
+                    <thead>
+                        <tr>
+                            <th>No</th>
+                            <th>Tanggal</th>
+                            <th>Lokasi</th>
+                            <th>Jenis Kerja</th>
+                            <th>Pekerja</th>
+                            <th style="text-align: right;">Upah Borongan</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${htmlRincian}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    `;
+}
+function generateRekapAkhirPekanJumat() {
+    if (!masterLogKerja || masterLogKerja.length === 0) {
+        alert("Belum ada data log kerja untuk direkap.");
+        return null;
+    }
+
+    const petaDataBersih = new Map();
+
+    masterLogKerja.forEach(item => {
+        // Kunci unik berdasarkan Tanggal + Lokasi + Jenis Pekerjaan
+        const kunciUnik = `${item.tanggal}_${item.lokasi}_${item.jenisPekerjaan}`;
+
+        if (!petaDataBersih.has(kunciUnik)) {
+            petaDataBersih.set(kunciUnik, { ...item });
+        } else {
+            // Jika ada data ganda, gabungkan daftar pekerjanya
+            const dataEksisting = petaDataBersih.get(kunciUnik);
+            const gabunganPekerja = Array.from(new Set([...dataEksisting.pekerja, ...item.pekerja]));
+            dataEksisting.pekerja = gabunganPekerja;
+            petaDataBersih.set(kunciUnik, dataEksisting);
+        }
+    });
+
+    const dataFinalBersih = Array.from(petaDataBersih.values());
+
+    let grandTotalBorongan = 0;
+    dataFinalBersih.forEach(log => {
+        grandTotalBorongan += log.hargaBoronganTotal;
+    });
+    
+    return {
+        listData: dataFinalBersih,
+        totalNilai: grandTotalBorongan
+    };
 }
