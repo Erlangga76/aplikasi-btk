@@ -365,8 +365,9 @@ async function tambahKeLogKerja() {
         jenisLampu: dataBaru.model,
         kategori: dataBaru.jenisPekerjaan,
         zona: dataBaru.zona,
-        jumlah: dataBaru.pekerja.length,
+        jumlahPekerja: dataBaru.pekerja.length, // Mengambil jumlah pekerja dari checkbox yang dicentang
         totalUpah: dataBaru.hargaBoronganTotal,
+        jamLembur: dataBaru.jamLembur,          // Sesuai dengan properti jamLembur
     });
 
     showToast(`Sukses! Pekerjaan di "${selectLokasi.value}" telah ditambahkan.`);
@@ -447,6 +448,19 @@ function generateSlipGaji() {
     const containerSlip = document.getElementById('containerSlipGaji');
     containerSlip.innerHTML = "";
 
+    // === AMBIL NAMA OPERATOR YANG SEDANG LOGIN ===
+    let namaOperatorLogin = "Satya"; // Nilai default jika belum login
+    const savedUser = localStorage.getItem("btk_logged_user");
+    if (savedUser) {
+        try {
+            const userData = JSON.parse(savedUser);
+            if (userData && userData.name) {
+                namaOperatorLogin = userData.name;
+            }
+        } catch (e) {
+            console.error("Gagal membaca data user login:", e);
+        }
+    }
     // Daftar master pekerja untuk looping berkala
     const semuaPekerjaList = ["Ambar", "Agus", "Komari"];
     
@@ -598,7 +612,7 @@ function generateSlipGaji() {
                     </div>
                     <div>
                         <div>Kep. Produksi</div>
-                        <div class="signature-space">Satya</div>
+                        <div class="signature-space">${namaOperatorLogin}</div>
                     </div>
                 </div>
             </div>
@@ -668,7 +682,8 @@ async function handleLogin() {
         const textData = await response.text();
         const result = JSON.parse(textData);
         
-        if (result.success && result.allowed) {
+        // KUNCI UTAMA: Wajib cek result.allowed === true
+        if (result.success && result.allowed === true) {
             localStorage.setItem("btk_logged_user", JSON.stringify({
                 phone: phoneNumber,
                 name: result.name || "Operator"
@@ -683,8 +698,9 @@ async function handleLogin() {
             }, 1000);
             
         } else {
+            // Jika tidak terdaftar / allowed bernilai false
             msgField.style.color = "#f87171";
-            msgField.textContent = "Nomor WhatsApp tidak terdaftar atau tidak aktif!";
+            msgField.textContent = "Nomor WhatsApp tidak terdaftar dalam Whitelist_User!";
             btnLogin.disabled = false;
             btnLogin.textContent = "Masuk Aplikasi";
         }
@@ -717,8 +733,9 @@ async function kirimDataPekerjaan(rincianPekerjaan) {
             jenisLampu: rincianPekerjaan.jenisLampu,
             kategori: rincianPekerjaan.kategori,
             zona: rincianPekerjaan.zona,
-            jumlah: rincianPekerjaan.jumlah,
-            totalUpah: rincianPekerjaan.totalUpah,
+            jumlahPekerja: rincianPekerjaan.jumlahPekerja, // Pastikan ini mengirim angka > 0
+            totalUpah: rincianPekerjaan.totalUpah,         // Pastikan ini mengirim angka total borongan
+            jamLembur: rincianPekerjaan.jamLembur,         // Pastikan ini mengirim angka jam lembur
         }
     };
 
@@ -737,7 +754,7 @@ async function kirimDataPekerjaan(rincianPekerjaan) {
             alert("Data pekerjaan berhasil disimpan ke Google Sheets!");
             // Lakukan pembersihan form atau muat ulang tabel log di sini
         } else {
-            alert("Gagal menyimpan data: " + result.message);
+            alert("Input data Pekerjaan: " + result.message);
         }
     } catch (error) {
         console.error("Error saat mengirim data:", error);
